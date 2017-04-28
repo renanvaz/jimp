@@ -115,7 +115,7 @@ function Jimp() {
         var w = arguments[0];
         var h = arguments[1];
         var cb = arguments[2];
-        
+
         if ("number" == typeof arguments[2]) {
             this._background = arguments[2];
             var cb = arguments[3];
@@ -169,11 +169,11 @@ function Jimp() {
         // read from a URL
         var url = arguments[0];
         var cb = arguments[1];
-        
+
         if ("undefined" == typeof cb) cb = noop;
         if ("function" != typeof cb)
             return throwError.call(this, "cb must be a function", cb);
-        
+
         var that = this;
         Request(url, function (err, response, data) {
             if (err) return throwError.call(that, err, cb);
@@ -188,7 +188,7 @@ function Jimp() {
         // read from a path
         var path = arguments[0];
         var cb = arguments[1];
-        
+
         if ("undefined" == typeof cb) cb = noop;
         if ("function" != typeof cb)
             return throwError.call(this, "cb must be a function", cb);
@@ -419,9 +419,9 @@ Jimp.rgbaToInt = function(r, g, b, a, cb){
         return throwError.call(this, "b must be between 0 and 255", cb);
     if (a < 0 || a > 255)
         return throwError.call(this, "a must be between 0 and 255", cb);
-    
+
     var i = (r * Math.pow(256, 3)) + (g * Math.pow(256, 2)) + (b *  Math.pow(256, 1)) + (a * Math.pow(256, 0));
-    
+
     if (isNodePattern(cb)) return cb.call(this, null, i);
     else return i;
 }
@@ -435,13 +435,13 @@ Jimp.rgbaToInt = function(r, g, b, a, cb){
 Jimp.intToRGBA = function(i, cb){
     if ("number" != typeof i)
         return throwError.call(this, "i must be a number", cb);
-    
+
     var rgba = {}
     rgba.r = Math.floor(i / Math.pow(256, 3));
     rgba.g = Math.floor((i - (rgba.r * Math.pow(256, 3))) / Math.pow(256, 2));
     rgba.b = Math.floor((i - (rgba.r * Math.pow(256, 3)) - (rgba.g * Math.pow(256, 2))) / Math.pow(256, 1));
     rgba.a = Math.floor((i - (rgba.r * Math.pow(256, 3)) - (rgba.g * Math.pow(256, 2)) - (rgba.b * Math.pow(256, 1))) / Math.pow(256, 0));
-    
+
     if (isNodePattern(cb)) return cb.call(this, null, rgba);
     else return rgba;
 }
@@ -481,7 +481,7 @@ Jimp.diff = function (img1, img2, threshold) {
                 break;
         }
     }
-    
+
     threshold = threshold || 0.1;
     if ("number" != typeof threshold || threshold < 0 || threshold > 1)
         return throwError.call(this, "threshold must be a number between 0 and 1");
@@ -496,7 +496,7 @@ Jimp.diff = function (img1, img2, threshold) {
         diff.bitmap.height,
         {threshold: threshold}
     );
-    
+
     return {
         percent: numDiffPixels / (diff.bitmap.width * diff.bitmap.height),
         image: diff
@@ -703,14 +703,14 @@ Jimp.prototype.getMIME = function(){
     var mime = this._originalMime || Jimp.MIME_PNG;
     return mime;
 }
-    
+
 /**
  * Returns the appropriate file extension for the original MIME of the image (default: "png")
  * @returns the file extension as a string
 */
 Jimp.prototype.getExtension = function(){
     var mime = this.getMIME();
-    return MIME.extension(mime); 
+    return MIME.extension(mime);
 }
 
 /**
@@ -772,10 +772,10 @@ Jimp.prototype.getPixelColor = Jimp.prototype.getPixelColour = function (x, y, c
     // round input
     x = Math.round(x);
     y = Math.round(y);
-    
+
     var idx = this.getPixelIndex(x, y);
     var hex = this.bitmap.data.readUInt32BE(idx);
-    
+
     if (isNodePattern(cb)) return cb.call(this, null, hex);
     else return hex;
 };
@@ -794,10 +794,10 @@ Jimp.prototype.setPixelColor = Jimp.prototype.setPixelColour = function (hex, x,
     // round input
     x = Math.round(x);
     y = Math.round(y);
-    
+
     var idx = this.getPixelIndex(x, y);
     this.bitmap.data.writeUInt32BE(hex, idx, true);
-    
+
     if (isNodePattern(cb)) return cb.call(this, null, this);
     else return this;
 };
@@ -826,14 +826,14 @@ Jimp.prototype.hash = function(base, cb){
         return throwError.call(this, "base must be a number", cb);
     if (base < 2 || base > 64)
         return throwError.call(this, "base must be a number between 2 and 64", cb);
-    
+
     var hash = (new ImagePHash()).getHash(this);
     hash = (new BigNumber(hash, 2)).toString(base);
-    
+
     while (hash.length < maxHashLength[base]) {
         hash = "0" + hash; // pad out with leading zeros
     }
-    
+
     if (isNodePattern(cb)) return cb.call(this, null, hash);
     else return hash;
 }
@@ -886,21 +886,21 @@ Jimp.prototype.crop = function (x, y, w, h, cb) {
  * @returns this                     for chaining of methods
  */
 Jimp.prototype.autocrop = function() {
+    var config = {north: true, east: true, south: true, west: true};
+
     var w = this.bitmap.width;
     var h = this.bitmap.height;
     var minPixelsPerSide = 1; // to avoid cropping completely the image, resulting in an invalid 0 sized image
     var cb; // callback
     var tolerance = 0.0002; // percent of color difference tolerance (default value)
-    var cropOnlyFrames = true; // flag to force cropping only if the image has a real "frame"
-                               // i.e. all 4 sides have some border (default value)
 
     // parse arguments
     for (var a = 0, len = arguments.length; a < len; a++) {
         if ("number" == typeof arguments[a]) { // tolerance value passed
             tolerance = arguments[a];
         }
-        if ("boolean" == typeof arguments[a]) { // tolerance value passed
-            cropOnlyFrames = arguments[a];
+        if ("object" == typeof arguments[a]) { // tolerance value passed
+            Object.assign(config, arguments[a]);
         }
         if ("function" == typeof arguments[a]) { // callback value passed
             cb = arguments[a];
@@ -1018,29 +1018,19 @@ Jimp.prototype.autocrop = function() {
     heightOfPixelsToCrop >= 0 ? heightOfPixelsToCrop : 0;
 
     // decide if a crop is needed
-    var doCrop = false;
-    if (cropOnlyFrames) { // crop image if all sides should be cropped
-        doCrop = (
-            eastPixelsToCrop !== 0 &&
-            northPixelsToCrop !== 0 &&
-            westPixelsToCrop !== 0 &&
-            southPixelsToCrop !== 0
+    doCrop = (
+            (northPixelsToCrop !== 0 && config.north) ||
+            (eastPixelsToCrop !== 0 && config.east) ||
+            (southPixelsToCrop !== 0 && config.south) ||
+            (westPixelsToCrop !== 0 && config.west)
         );
-    } else { // crop image if at least one side should be cropped
-        doCrop = (
-            eastPixelsToCrop !== 0 ||
-            northPixelsToCrop !== 0 ||
-            westPixelsToCrop !== 0 ||
-            southPixelsToCrop !== 0
-        );
-    }
 
     if (doCrop) { // do the real crop
        this.crop(
-           eastPixelsToCrop,
-           northPixelsToCrop,
-           widthOfPixelsToCrop,
-           heightOfPixelsToCrop
+            config.west ? eastPixelsToCrop : 0,
+            config.north ? northPixelsToCrop : 0,
+            config.east ? (config.west ? widthOfPixelsToCrop : w - westPixelsToCrop) : (config.west ? w - westPixelsToCrop : w),
+            config.south ? (config.north ? heightOfPixelsToCrop : h - southPixelsToCrop) : (config.north ? h - northPixelsToCrop : h)
        );
     }
 
@@ -1156,27 +1146,27 @@ Jimp.prototype.composite = function (src, x, y, cb) {
     src.scan(0, 0, src.bitmap.width, src.bitmap.height, function(sx, sy, idx) {
         // http://stackoverflow.com/questions/7438263/alpha-compositing-algorithm-blend-modes
         var dstIdx = that.getPixelIndex(x+sx, y+sy);
-        
+
         var fg = {
             r: this.bitmap.data[idx + 0] / 255,
             g: this.bitmap.data[idx + 1] / 255,
             b: this.bitmap.data[idx + 2] / 255,
             a: this.bitmap.data[idx + 3] / 255
         }
-        
+
         var bg = {
             r: that.bitmap.data[dstIdx + 0] / 255,
             g: that.bitmap.data[dstIdx + 1] / 255,
             b: that.bitmap.data[dstIdx + 2] / 255,
             a: that.bitmap.data[dstIdx + 3] / 255
         }
-        
+
         var a = bg.a + fg.a - bg.a * fg.a;
-        
+
         var r = ((fg.r * fg.a) + (bg.r * bg.a) * (1 - fg.a)) / a;
         var g = ((fg.g * fg.a) + (bg.g * bg.a) * (1 - fg.a)) / a;
         var b = ((fg.b * fg.a) + (bg.b * bg.a) * (1 - fg.a)) / a;
-        
+
         that.bitmap.data[dstIdx + 0] = Jimp.limit255(r * 255);
         that.bitmap.data[dstIdx + 1] = Jimp.limit255(g * 255);
         that.bitmap.data[dstIdx + 2] = Jimp.limit255(b * 255);
@@ -1728,7 +1718,7 @@ Jimp.prototype.fade = function (f, cb) {
 
     // this method is an alternative to opacity (which may be deprecated)
     this.opacity(1 - f);
-    
+
     if (isNodePattern(cb)) return cb.call(this, null, this);
     else return this;
 };
@@ -1758,18 +1748,18 @@ Jimp.prototype.opaque = function (cb) {
 Jimp.prototype.resize = function (w, h, mode, cb) {
     if ("number" != typeof w || "number" != typeof h)
         return throwError.call(this, "w and h must be numbers", cb);
-    
+
     if ("function" == typeof mode && "undefined" == typeof cb) {
         cb = mode;
         mode = null;
     }
-    
+
     if (w == Jimp.AUTO && h == Jimp.AUTO)
         return throwError.call(this, "w and h cannot both the set to auto", cb);
 
     if (w == Jimp.AUTO) w = this.bitmap.width * (h / this.bitmap.height);
     if (h == Jimp.AUTO) h = this.bitmap.height * (w / this.bitmap.width);
-    
+
     // round inputs
     w = Math.round(w);
     h = Math.round(h);
@@ -1828,12 +1818,12 @@ Jimp.prototype.cover = function (w, h, alignBits, mode, cb) {
 
     var align_h = (hbits >> 1); // 0, 1, 2
     var align_v = (vbits >> 1); // 0, 1, 2
-    
+
     var f = (w/h > this.bitmap.width/this.bitmap.height) ?
         w/this.bitmap.width : h/this.bitmap.height;
     this.scale(f, mode);
     this.crop(((this.bitmap.width - w) / 2) * align_h, ((this.bitmap.height - h) / 2) * align_v, w, h);
-    
+
     if (isNodePattern(cb)) return cb.call(this, null, this);
     else return this;
 };
@@ -1867,7 +1857,7 @@ Jimp.prototype.contain = function (w, h, alignBits, mode, cb) {
                 mode = null;
             }
     }
-    
+
     alignBits = alignBits || (Jimp.HORIZONTAL_ALIGN_CENTER | Jimp.VERTICAL_ALIGN_MIDDLE);
     var hbits = ((alignBits) & ((1<<(3))-1));
     var vbits = alignBits >> 3;
@@ -1882,7 +1872,7 @@ Jimp.prototype.contain = function (w, h, alignBits, mode, cb) {
     var f = (w/h > this.bitmap.width/this.bitmap.height) ?
         h/this.bitmap.height : w/this.bitmap.width;
     var c = this.clone().scale(f, mode);
-    
+
     this.resize(w, h, mode);
     this.scan(0, 0, this.bitmap.width, this.bitmap.height, function (x, y, idx) {
         this.bitmap.data.writeUInt32BE(this._background, idx);
@@ -1910,7 +1900,7 @@ Jimp.prototype.scale = function (f, mode, cb) {
         cb = mode;
         mode = null;
     }
-    
+
     var w = this.bitmap.width * f;
     var h = this.bitmap.height * f;
     this.resize(w, h, mode);
@@ -1935,7 +1925,7 @@ Jimp.prototype.scaleToFit = function (w, h, mode, cb) {
         cb = mode;
         mode = null;
     }
-    
+
     var f = (w/h > this.bitmap.width/this.bitmap.height) ?
         h/this.bitmap.height : w/this.bitmap.width;
     this.scale(f, mode);
@@ -1967,7 +1957,7 @@ function simpleRotate(deg) {
         }
 
         this.bitmap.data = new Buffer(dstBuffer);
-        
+
         var tmp = this.bitmap.width;
         this.bitmap.width = this.bitmap.height;
         this.bitmap.height = tmp;
@@ -1986,7 +1976,7 @@ function advancedRotate(deg, mode) {
     var rad = (deg % 360) * Math.PI / 180;
     var cosine = Math.cos(rad);
     var sine = Math.sin(rad);
-    
+
     var w, h; // the final width and height if resize == true
 
     if (mode == true || "string" == typeof mode) {
@@ -2000,15 +1990,15 @@ function advancedRotate(deg, mode) {
         this.scan(0, 0, this.bitmap.width, this.bitmap.height, function (x, y, idx) {
             this.bitmap.data.writeUInt32BE(this._background, idx);
         });
-        
+
         var max= Math.max(w,h,this.bitmap.width,this.bitmap.height)
         this.resize(max, max, mode);
-        
+
         this.blit(c, this.bitmap.width / 2 - c.bitmap.width / 2, this.bitmap.height / 2 - c.bitmap.height / 2);
     }
 
     var dstBuffer = new Buffer(this.bitmap.data.length);
-    
+
     function createTranslationFunction(deltaX, deltaY) {
         return function(x, y) {
             return {
@@ -2020,7 +2010,7 @@ function advancedRotate(deg, mode) {
 
     var translate2Cartesian = createTranslationFunction(-(this.bitmap.width / 2), -(this.bitmap.height / 2));
     var translate2Screen = createTranslationFunction(this.bitmap.width / 2, this.bitmap.height / 2);
-    
+
     for (var y = 0; y < this.bitmap.height; y++) {
         for (var x = 0; x < this.bitmap.width; x++) {
             var cartesian = translate2Cartesian(x, this.bitmap.height - y);
@@ -2042,7 +2032,7 @@ function advancedRotate(deg, mode) {
         }
     }
     this.bitmap.data = dstBuffer;
-    
+
     if (mode == true || "string" == typeof mode) {
         // now crop the image to the final size
         var x = (this.bitmap.width / 2) - (w/2);
@@ -2072,16 +2062,16 @@ Jimp.prototype.rotate = function (deg, mode, cb) {
         cb = mode;
         mode = true;
     }
-    
+
     if ("number" != typeof deg)
         return throwError.call(this, "deg must be a number", cb);
-    
+
     if ("boolean" != typeof mode && "string" != typeof mode)
         return throwError.call(this, "mode must be a boolean or a string", cb);
 
     if (deg % 90 == 0 && mode !== false) simpleRotate.call(this, deg, cb);
     else advancedRotate.call(this, deg, mode, cb);
-    
+
     if (isNodePattern(cb)) return cb.call(this, null, this);
     else return this;
 };
@@ -2096,7 +2086,7 @@ Jimp.prototype.getBuffer = function (mime, cb) {
     if (mime == Jimp.AUTO) { // allow auto MIME detection
         mime = this.getMIME();
     }
-    
+
     if ("string" != typeof mime)
         return throwError.call(this, "mime must be a string", cb);
     if ("function" != typeof cb)
@@ -2115,10 +2105,10 @@ Jimp.prototype.getBuffer = function (mime, cb) {
               colorType: (this._rgba) ? 6 : 2,
               inputHasAlpha: true
             });
-            
+
             if (this._rgba) png.data = new Buffer(this.bitmap.data);
             else png.data = compositeBitmapOverBackground(this).data; // when PNG doesn't support alpha
-            
+
             StreamToBuffer(png.pack(), function (err, buffer) {
                 return cb.call(that, null, buffer);
             });
@@ -2155,7 +2145,7 @@ Jimp.prototype.getBase64 = function (mime, cb) {
     if (mime == Jimp.AUTO) { // allow auto MIME detection
         mime = this.getMIME();
     }
-    
+
     if ("string" != typeof mime)
         return throwError.call(this, "mime must be a string", cb);
     if ("function" != typeof cb)
@@ -2165,7 +2155,7 @@ Jimp.prototype.getBase64 = function (mime, cb) {
         var src = "data:" + mime + ";base64,"  + data.toString("base64");
         return cb.call(this, null, src);
     });
-    
+
     return this;
 };
 
@@ -2269,7 +2259,7 @@ Jimp.loadFont = function (file, cb) {
 
     var that = this;
 
-    return new Promise(function (resolve, reject) { 
+    return new Promise(function (resolve, reject) {
         cb = cb || function(err, font) {
             if (err) reject(err);
             else resolve(font);
@@ -2329,7 +2319,7 @@ Jimp.prototype.print = function (font, x, y, text, maxWidth, cb) {
     if ("undefined" == typeof maxWidth) {
         maxWidth = Infinity;
     }
-    
+
     if ("object" != typeof font)
         return throwError.call(this, "font must be a Jimp loadFont", cb);
     if ("number" != typeof x || "number" != typeof y || "number" != typeof maxWidth)
@@ -2340,7 +2330,7 @@ Jimp.prototype.print = function (font, x, y, text, maxWidth, cb) {
         return throwError.call(this, "maxWidth must be a number", cb);
 
     var that = this;
-    
+
     var words = text.split(' ');
     var line = '';
 
